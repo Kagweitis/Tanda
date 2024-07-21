@@ -2,6 +2,7 @@ package com.tanda.payments;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tanda.payments.DTO.AcknowledgeResponse;
+import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import okhttp3.OkHttpClient;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
@@ -11,6 +12,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.kafka.core.KafkaTemplate;
 
 @SpringBootApplication
+@OpenAPIDefinition
 public class PaymentsApplication {
 
     public static void main(String[] args) {
