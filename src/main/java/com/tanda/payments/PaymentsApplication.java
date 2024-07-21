@@ -1,6 +1,7 @@
 package com.tanda.payments;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.tanda.payments.DTO.AcknowledgeResponse;
 import okhttp3.OkHttpClient;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
@@ -24,5 +25,12 @@ public class PaymentsApplication {
     @Bean
     public ObjectMapper getObjectMapper() {
         return new ObjectMapper();
+    }
+
+    @Bean
+    public AcknowledgeResponse getAcknowledgeResponse() {
+        AcknowledgeResponse acknowledgeResponse = new AcknowledgeResponse();
+        acknowledgeResponse.setMessage("Success");
+        return acknowledgeResponse;
     }
 }

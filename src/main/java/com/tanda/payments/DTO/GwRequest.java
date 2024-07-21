@@ -24,7 +24,7 @@ public class GwRequest {
     private Double amount;
 
     @NonNull
-    @Pattern(regexp = "^\\+2547[0-9]{8}$", message = "Invalid Safaricom mobile number")
+    @Pattern(regexp = "^\\2547[0-9]{8}$", message = "Invalid Safaricom mobile number")
     private String mobileNumber;
     private Date createdAt;
 

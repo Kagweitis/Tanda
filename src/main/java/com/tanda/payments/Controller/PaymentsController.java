@@ -3,9 +3,8 @@ package com.tanda.payments.Controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.tanda.payments.Configs.KafkaListeners;
-import com.tanda.payments.DTO.AcknowledgeResponse;
-import com.tanda.payments.DTO.B2CSuccessfullResponse;
-import com.tanda.payments.DTO.GwRequest;
+import com.tanda.payments.DTO.*;
+import com.tanda.payments.Services.DarajaService;
 import com.tanda.payments.Services.PaymentsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +15,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -28,6 +28,8 @@ public class PaymentsController {
     private final KafkaTemplate<String, GwRequest> kafkaTemplate;
     private final KafkaListeners kafkaListeners;
     private final PaymentsService paymentsService;
+    private final DarajaService darajaService;
+    private final AcknowledgeResponse acknowledgeResponse;
 
     @PostMapping("gw/request")
     public ResponseEntity<?> gwRequest(@RequestBody GwRequest gwRequest){
@@ -38,6 +40,10 @@ public class PaymentsController {
         kafkaTemplate.send("payment-topic", gwRequest);
         return new ResponseEntity<>("Request sent to Kafka", HttpStatus.OK);
     }
+    @GetMapping(path = "/token", produces = "application/json")
+    public ResponseEntity<AccessTokenResponse> getAccessToken() {
+        return ResponseEntity.ok(darajaService.getAccessToken());
+    }
 
 
     @PostMapping(path = "/b2c-transaction-result", produces = "application/json")
@@ -45,6 +51,17 @@ public class PaymentsController {
             {
         log.info("============ B2C Transaction Response =============");
         log.info(String.valueOf(b2CSuccessfullResponse));
-        return ResponseEntity.ok("success");
+        // Tell Safaricom We've Recieved the Response
+        return ResponseEntity.ok(acknowledgeResponse);
     }
+
+    @PostMapping(path = "/b2c-queue-timeout", produces = "application/json")
+    public ResponseEntity<AcknowledgeResponse> queueTimeout(@RequestBody Object object) {
+        return ResponseEntity.ok(acknowledgeResponse);
+    }
+
+//    @PostMapping(path = "/b2c-transaction", produces = "application/json")
+//    public ResponseEntity<B2CResponse> performB2CTransaction(@RequestBody InternalB2CTransactionRequest internalB2CTransactionRequest) throws IOException {
+//        return ResponseEntity.ok(darajaService.performB2CTransaction(internalB2CTransactionRequest));
+//    }
 }

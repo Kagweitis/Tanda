@@ -10,20 +10,14 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class B2CRequest {
 
-	@JsonProperty("occasion")
-	private String occasion;
-
 	@JsonProperty("QueueTimeOutURL")
 	private String queueTimeOutURL;
-
-	@JsonProperty("OriginatorConversationID")
-	private String originatorConversationID;
 
 	@JsonProperty("Remarks")
 	private String remarks;
 
 	@JsonProperty("Amount")
-	private int amount;
+	private String amount;
 
 	@JsonProperty("InitiatorName")
 	private String initiatorName;
@@ -31,17 +25,21 @@ public class B2CRequest {
 	@JsonProperty("SecurityCredential")
 	private String securityCredential;
 
+	@JsonProperty("Occassion")
+	private String occassion;
+
 	@JsonProperty("CommandID")
 	private String commandID;
 
 	@JsonProperty("PartyA")
-	private int partyA;
+	private String partyA;
 
 	@JsonProperty("PartyB")
-	private long partyB;
+	private String partyB;
 
 	@JsonProperty("ResultURL")
 	private String resultURL;
 
-
+	@JsonProperty("OriginatorConversationID")
+	private String originatorConversationID;
 }

@@ -22,5 +22,14 @@ public class B2CResponse{
 	@JsonProperty("ResponseDescription")
 	private String responseDescription;
 
+	@JsonProperty("requestId")
+	private String requestId;
+
+	@JsonProperty("errorCode")
+	private String errorCode;
+
+	@JsonProperty("errorMessage")
+	private String errorMessage;
+
 
 }

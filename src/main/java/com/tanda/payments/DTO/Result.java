@@ -1,7 +1,9 @@
 package com.tanda.payments.DTO;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Data;
 
+@Data
 public class Result{
 
 	@JsonProperty("ConversationID")

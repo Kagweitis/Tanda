@@ -2,8 +2,14 @@ package com.tanda.payments.DTO;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
 
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class AccessTokenResponse {
 
     @JsonProperty("access_token")

@@ -1,11 +1,17 @@
 package com.tanda.payments.Services;
 
+import com.tanda.payments.DTO.B2CResponse;
+import com.tanda.payments.DTO.B2CSuccessfullResponse;
 import com.tanda.payments.DTO.GwRequest;
+import com.tanda.payments.DTO.InternalB2CTransactionRequest;
 import com.tanda.payments.Models.PaymentRequest;
+import com.tanda.payments.Models.PendingRequestLog;
 import com.tanda.payments.Models.Status;
 import com.tanda.payments.Repository.PaymentRequestRepository;
+import com.tanda.payments.Repository.PendingRequestLogRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -19,6 +25,8 @@ public class PaymentsService {
 
 
     private final PaymentRequestRepository paymentRequestRepository;
+    private final PendingRequestLogRepository pendingRequestLogRepository;
+    private final DarajaService darajaService;
 
     public Map<String, String> validateGwRequest(GwRequest gwRequest) {
         Map<String, String> errors = new HashMap<>();
@@ -48,7 +56,7 @@ public class PaymentsService {
         return errors;
     }
 
-    public void processPayment(GwRequest gwRequest) {
+    public ResponseEntity<?> processPayment(GwRequest gwRequest) {
 
 
         // Validate GwRequest
@@ -61,37 +69,48 @@ public class PaymentsService {
         paymentRequestRepository.save(paymentRequest);
 
         // Send to 3rd Party PG
+        InternalB2CTransactionRequest internalB2CTransactionRequest = new InternalB2CTransactionRequest();
+        internalB2CTransactionRequest.setAmount(paymentRequest.getAmount().toString());
+        internalB2CTransactionRequest.setCommandID("BusinessPayment");
+        internalB2CTransactionRequest.setOccasion("Disbursement");
+        internalB2CTransactionRequest.setPartyB(paymentRequest.getMobileNumber());
+        internalB2CTransactionRequest.setRemarks("Tanda pay");
 
-//        Body
-//        {
-//            "OriginatorConversationID": "3379ed8f-2308-4fd8-8a68-08c249776b50",
-//                "InitiatorName": "testapi",
-//                "SecurityCredential": "P0DAwEhniNq+oujuQdzqWSXa/UhYZ6sujX9WP+YtO9QlKMfa3hJ3507ImCBifEfwaj1ei4tp330KhbowDYWDetnwfPTIAqdtcyGtTgDKHZtdOWNx2UcDQ9SwoDo/lRq1alLMoh/vTYGCLivTSEnqlbYdJa/bnHnY8RXPCUSK6p710NOYI0AbhgNOQGxzYjRfNXwP2XiIU0ntLJmvzUMD1NysjHluNlw90vBCnYRtV89o3B3NQ725c6CaSbnfOpgmibrnF5uksyaQ/qKI8FNskmN7T5I3yxTGRZUrrBXmunCDQpnEuMEBgNzmtLStOqiM25SnYQ8LriccxQ5mLhx4mg==",
-//                "CommandID": "BusinessPayment",
-//                "Amount": 10,
-//                "PartyA": 600995,
-//                "PartyB": 254799264960,
-//                "Remarks": "Test remarks",
-//                "QueueTimeOutURL": "https://mydomain.com/b2c/queue",
-//                "ResultURL": "https://mydomain.com/b2c/result",
-//                "occasion": "Disbursment"
-//        }
-//        try {
-//            // Mock sending request to PG
-//            // Assume success and send callback
-//            Result result = new Result();
-//            result.setId(gwRequest.getId());
-//            result.setStatus("Success");
-//            result.setRef("MPESA12345");
-//            handleCallback(result);
-//        } catch (Exception e) {
-//            // Log to PendingRequest if failed
-//            PendingRequest pendingRequest = new PendingRequest();
-//            pendingRequest.setId(gwRequest.getId());
-//            pendingRequest.setAmount(gwRequest.getAmount());
-//            pendingRequest.setMobileNumber(gwRequest.getMobileNumber());
-//            pendingRequestRepository.save(pendingRequest);
-//        }
+        try {
+            darajaService.performB2CTransaction(internalB2CTransactionRequest);
+            return ResponseEntity.ok().body("Success");
+        } catch (Exception e){
+            log.error("Failed to make payment "+e.getMessage());
+            paymentRequest.setStatus(Status.FAILED);
+            paymentRequestRepository.save(paymentRequest);
+            return ResponseEntity.internalServerError().body("could not make b2c payment please try again "+e);
+        }
+    }
+
+    public void handleB2CTransactionCallback(B2CSuccessfullResponse b2CSuccessfullResponse) {
+        // Validate and update the payment request log
+        PaymentRequest paymentRequest = paymentRequestRepository.findByTransactionId(UUID.fromString(b2CSuccessfullResponse.getResult().getOriginatorConversationID()));
+        if (paymentRequest != null) {
+            if ("0".equals(b2CSuccessfullResponse.getResult())) {
+                paymentRequest.setStatus(Status.SUCCESSFUL);
+            } else {
+                paymentRequest.setStatus(Status.FAILED);
+            }
+            paymentRequestRepository.save(paymentRequest);
+
+            // Remove from pending log if exists
+            PendingRequestLog pendingRequest = pendingRequestLogRepository.findByPaymentRequestId(b2CSuccessfullResponse.getResult().getOriginatorConversationID());
+            if (pendingRequest != null) {
+                pendingRequestLogRepository.delete(pendingRequest);
+            }
+        }
+    }
+
+    private void logPendingRequest(PaymentRequest paymentRequest) {
+        PendingRequestLog pendingRequest = new PendingRequestLog();
+        pendingRequest.setPaymentRequestId(String.valueOf(paymentRequest.getTransactionId()));
+        pendingRequest.setRetryCount(String.valueOf(0));
+        pendingRequestLogRepository.save(pendingRequest);
     }
 
 
